@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Exam System - Smart Question Paper Generator</title>
+    <meta name="description" content="Advanced AI-powered exam system for creating, managing, and taking intelligent assessments">
+    <meta name="keywords" content="AI exam, question generator, online assessment, education technology">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-brain"></i>
+                AI Exam System
+            </div>
+
+            <!-- Authentication Navigation (shown when not logged in) -->
+            <div id="nav-auth" class="nav-links">
+                <button class="btn btn-outline" onclick="showLogin()">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </button>
+                <button class="btn btn-primary" onclick="showRegister()">
+                    <i class="fas fa-user-plus"></i>
+                    Register
+                </button>
+            </div>
+
+            <!-- User Navigation (shown when logged in) -->
+            <div id="nav-user" class="nav-links" style="display: none;">
+                <span id="user-name" class="user-name">User</span>
+                <button class="btn btn-outline" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Landing Page -->
+        <section id="landing-page" class="landing-page">
+            <!-- Hero Section -->
+            <div class="hero">
+                <div class="hero-content">
+                    <h1>AI-Powered Exam System</h1>
+                    <p>Create intelligent question papers, manage assessments, and track student progress with advanced AI technology</p>
+
+                    <div class="hero-buttons">
+                        <button class="btn btn-large btn-primary" onclick="showRegister()">
+                            <i class="fas fa-rocket"></i>
+                            Get Started
+                        </button>
+                        <button class="btn btn-large btn-outline" onclick="showLogin()">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Login
+                        </button>
+                    </div>
+
+                    <!-- Quick Test Buttons (for debugging) -->
+                    <div class="hero-buttons" style="margin-top: 20px; gap: 10px;">
+                        <button class="btn btn-success" onclick="testLogin('student@example.com', 'password123')" title="Test student login">
+                            <i class="fas fa-user-graduate"></i>
+                            Test Student
+                        </button>
+                        <button class="btn btn-info" onclick="testLogin('teacher@example.com', 'password123')" title="Test teacher login">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            Test Teacher
+                        </button>
+                        <button class="btn btn-primary" onclick="testRegister('newuser' + Date.now(), 'newuser' + Date.now() + '@example.com', 'password123', 'student', 'New Test User')" title="Test registration">
+                            <i class="fas fa-user-plus"></i>
+                            Test Register
+                        </button>
+                        <button class="btn btn-warning" onclick="testNewExam()" title="Test the newly created exam">
+                            <i class="fas fa-clipboard-check"></i>
+                            Test New Exam
+                        </button>
+                        <button class="btn btn-secondary" onclick="quickExamTest()" title="Test exam system with any available exam">
+                            <i class="fas fa-list-check"></i>
+                            Test Any Exam
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="hero-features">
+                <div class="feature">
+                    <i class="fas fa-robot"></i>
+                    <h3>AI Question Generation</h3>
+                    <p>Generate intelligent questions automatically based on topics and difficulty levels using advanced AI</p>
+                </div>
+
+                <div class="feature">
+                    <i class="fas fa-database"></i>
+                    <h3>Question Bank</h3>
+                    <p>Access thousands of pre-made questions across multiple subjects with smart filtering and search</p>
+                </div>
+
+                <div class="feature">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Analytics & Insights</h3>
+                    <p>Track student performance with detailed analytics and generate comprehensive progress reports</p>
+                </div>
+
+                <div class="feature">
+                    <i class="fas fa-mobile-alt"></i>
+                    <h3>Mobile Friendly</h3>
+                    <p>Take exams and manage content seamlessly across all devices with responsive design</p>
+                </div>
+
+                <div class="feature">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Secure & Reliable</h3>
+                    <p>Enterprise-grade security with automated backups and reliable performance monitoring</p>
+                </div>
+
+                <div class="feature">
+                    <i class="fas fa-users"></i>
+                    <h3>Multi-User Support</h3>
+                    <p>Support for teachers, students, and administrators with role-based access control</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Teacher Dashboard -->
+        <section id="teacher-dashboard" class="dashboard" style="display: none;">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-chalkboard-teacher"></i> Teacher Dashboard</h1>
+                <div class="dashboard-actions">
+                    <button class="btn btn-primary" onclick="showCreateExam()">
+                        <i class="fas fa-plus"></i>
+                        Create Exam
+                    </button>
+                    <button class="btn btn-outline" onclick="showQuestionBank()">
+                        <i class="fas fa-database"></i>
+                        Question Bank
+                    </button>
+                    <button class="btn btn-outline" onclick="showBrowseQuestions()">
+                        <i class="fas fa-search"></i>
+                        Browse Questions
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Statistics -->
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-exams">0</h3>
+                        <p>Total Exams</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-students">0</h3>
+                        <p>Active Students</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="avg-score">0%</h3>
+                        <p>Average Score</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="pending-reviews">0</h3>
+                        <p>Pending Reviews</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Exams -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-history"></i> Recent Exams</h2>
+                    <button class="btn btn-sm btn-outline" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div id="recent-exams-list" class="exams-grid">
+                    <!-- Recent exams will be loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Student Dashboard -->
+        <section id="student-dashboard" class="dashboard" style="display: none;">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-graduation-cap"></i> Student Dashboard</h1>
+                <div class="dashboard-actions">
+                    <button class="btn btn-primary" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Enhanced Student Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Left Column - Progress & Achievements -->
+                <div class="dashboard-left">
+                    <div class="progress-section">
+                        <h3><i class="fas fa-chart-line"></i> Your Progress</h3>
+                        <div class="progress-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="available-exams">0</div>
+                                <div class="stat-label">Available Exams</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="completed-exams">0</div>
+                                <div class="stat-label">Completed Exams</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="student-avg-score">0%</div>
+                                <div class="stat-label">Average Score</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="student-rank">-</div>
+                                <div class="stat-label">Class Rank</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Section -->
+                    <div class="achievements-section">
+                        <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                        <div class="badges-grid" id="student-badges">
+                            <!-- Achievement badges will be loaded here -->
+                        </div>
+                        <div id="student-achievements" style="display: none;">
+                            <!-- Additional achievements data -->
+                        </div>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="progress-section">
+                        <div id="student-progress">
+                            <!-- Student progress will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Column - Available Exams & Calendar -->
+                <div class="dashboard-center">
+                    <!-- Available Exams -->
+                    <div class="available-exams-section">
+                        <h3><i class="fas fa-clipboard-list"></i> Available Exams</h3>
+                        <div id="available-exams-list" class="exams-list">
+                            <!-- Available exams will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Exams -->
+                    <div class="upcoming-exams-section">
+                        <h3><i class="fas fa-calendar-check"></i> Upcoming Exams</h3>
+                        <div id="upcoming-exams" class="exams-list">
+                            <!-- Upcoming exams will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Study Calendar -->
+                    <div class="calendar-section">
+                        <h3><i class="fas fa-calendar-alt"></i> Study Calendar</h3>
+                        <div class="calendar-widget">
+                            <div class="calendar-header">
+                                <button class="calendar-nav" onclick="previousMonth()">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <span id="calendar-month-year">January 2024</span>
+                                <button class="calendar-nav" onclick="nextMonth()">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="calendar-grid" id="calendar-grid">
+                                <!-- Calendar days will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Recent Results & Study Tips -->
+                <div class="dashboard-right">
+                    <!-- Recent Results -->
+                    <div class="recent-results-section">
+                        <h3><i class="fas fa-chart-bar"></i> Recent Results</h3>
+                        <div id="recent-results-list" class="results-list">
+                            <!-- Recent results will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Study Tips -->
+                    <div class="study-tips-section">
+                        <h3><i class="fas fa-lightbulb"></i> Study Tips</h3>
+                        <div id="study-tips" class="tips-list">
+                            <!-- Study tips will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Containers -->
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-sign-in-alt"></i> Login</h2>
+                <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email Address</label>
+                        <input type="email" id="login-email" name="email" required
+                               placeholder="Enter your email address">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" required
+                               placeholder="Enter your password">
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Login
+                        </button>
+                    </div>
+                </form>
+
+                <div class="modal-footer">
+                    <p>Don't have an account? <a href="#" onclick="showRegister(); closeModal('login-modal');">Register here</a></p>
+                    <p><a href="#" onclick="showForgotPassword()">Forgot your password?</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-plus"></i> Create Account</h2>
+                <span class="close" onclick="closeModal('register-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="register-fullname">Full Name</label>
+                        <input type="text" id="register-fullname" name="fullname" required
+                               placeholder="Enter your full name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" name="username" required
+                               placeholder="Choose a username" minlength="3">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-email">Email Address</label>
+                        <input type="email" id="register-email" name="email" required
+                               placeholder="Enter your email address">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="register-password">Password</label>
+                            <input type="password" id="register-password" name="password" required
+                                   placeholder="Create a password" minlength="6">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="register-confirm-password">Confirm Password</label>
+                            <input type="password" id="register-confirm-password" name="confirm_password" required
+                                   placeholder="Confirm your password">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-role">Account Type</label>
+                        <select id="register-role" name="role" required>
+                            <option value="">Select your role</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-user-plus"></i>
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+
+                <div class="modal-footer">
+                    <p>Already have an account? <a href="#" onclick="showLogin(); closeModal('register-modal');">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Exam Modal -->
+    <div id="create-exam-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus"></i> Create New Exam</h2>
+                <span class="close" onclick="closeModal('create-exam-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="create-exam-form">
+                    <!-- Basic Exam Information -->
+                    <div class="form-section">
+                        <h3><i class="fas fa-info-circle"></i> Exam Details</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="exam-title">Exam Title</label>
+                                <input type="text" id="exam-title" name="title" required
+                                       placeholder="Enter exam title">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="exam-subject">Subject</label>
+                                <select id="exam-subject" name="subject" required onchange="loadTopics()">
+                                    <option value="">Select Subject</option>
+                                    <!-- Subjects will be loaded dynamically -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="exam-topic">Topic (Optional)</label>
+                                <select id="exam-topic" name="topic">
+                                    <option value="">Select Topic</option>
+                                    <!-- Topics will be loaded based on subject -->
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="exam-duration">Duration (minutes)</label>
+                                <input type="number" id="exam-duration" name="duration" required
+                                       min="5" max="300" value="60" placeholder="60">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="exam-description">Description</label>
+                            <textarea id="exam-description" name="description" rows="3"
+                                      placeholder="Enter exam description (optional)"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- AI Quiz Generator Section -->
+                    <div class="form-section ai-quiz-generator">
+                        <div class="section-header">
+                            <h3><i class="fas fa-robot"></i> AI Question Generator</h3>
+                            <span class="ai-badge">AI Powered</span>
+                        </div>
+                        <p class="ai-description">Generate intelligent questions automatically based on your exam title and requirements</p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ai-difficulty">Difficulty Level</label>
+                                <select id="ai-difficulty" name="difficulty">
+                                    <option value="mixed">Mixed Difficulty</option>
+                                    <option value="easy">Easy</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="hard">Hard</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ai-question-count">Number of Questions</label>
+                                <input type="number" id="ai-question-count" name="question_count"
+                                       min="5" max="50" value="10" placeholder="10">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="button" class="btn btn-primary" onclick="generateAIQuiz()">
+                                <i class="fas fa-magic"></i>
+                                Generate AI Quiz
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pre-selected Questions Section -->
+                    <div id="pre-selected-section" class="form-section pre-selected-section" style="display: none;">
+                        <h3><i class="fas fa-check-circle"></i> Pre-selected Questions</h3>
+                        <div class="pre-selected-questions-preview" id="pre-selected-preview">
+                            <!-- Pre-selected questions will be shown here -->
+                        </div>
+                    </div>
+
+                    <!-- Generated Questions Preview -->
+                    <div id="generated-questions-section" class="form-section" style="display: none;">
+                        <h3><i class="fas fa-list"></i> Generated Questions</h3>
+                        <div id="generated-questions-preview" class="questions-preview">
+                            <!-- Generated questions will be displayed here -->
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('create-exam-modal')">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i>
+                            Create Exam
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Browser Modal -->
+    <div id="question-browser-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-xl">
+            <div class="modal-header">
+                <h2><i class="fas fa-database"></i> Question Bank Browser</h2>
+                <span class="close" onclick="closeModal('question-browser-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Question Bank Statistics -->
+                <div class="question-bank-stats">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="total-questions-count">0</div>
+                            <div class="stat-label">Total Questions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="selected-questions-count">0</div>
+                            <div class="stat-label">Selected</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="subjects-count">0</div>
+                            <div class="stat-label">Subjects</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="difficulty-levels-count">3</div>
+                            <div class="stat-label">Difficulty Levels</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question Filters -->
+                <div class="question-filters">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="filter-subject">Subject</label>
+                            <select id="filter-subject" onchange="filterQuestions()">
+                                <option value="">All Subjects</option>
+                                <!-- Subjects will be loaded dynamically -->
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filter-topic">Topic</label>
+                            <select id="filter-topic" onchange="filterQuestions()">
+                                <option value="">All Topics</option>
+                                <!-- Topics will be loaded based on subject -->
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filter-difficulty">Difficulty</label>
+                            <select id="filter-difficulty" onchange="filterQuestions()">
+                                <option value="">All Difficulties</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filter-type">Question Type</label>
+                            <select id="filter-type" onchange="filterQuestions()">
+                                <option value="">All Types</option>
+                                <option value="mcq">Multiple Choice</option>
+                                <option value="short_answer">Short Answer</option>
+                                <option value="descriptive">Descriptive</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <button class="btn btn-outline" onclick="clearFilters()">
+                                <i class="fas fa-times"></i>
+                                Clear Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Questions Grid -->
+                <div id="questions-grid" class="questions-grid">
+                    <!-- Questions will be loaded here -->
+                </div>
+
+                <!-- Browser Actions -->
+                <div class="browser-actions">
+                    <div class="selection-info">
+                        <span id="selection-summary">0 questions selected</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-outline" onclick="exportQuestions()">
+                            <i class="fas fa-download"></i>
+                            Export Selected
+                        </button>
+                        <button class="btn btn-primary" onclick="createExamFromSelected()" disabled id="create-exam-btn">
+                            <i class="fas fa-plus"></i>
+                            Create Exam from Selected
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exam Taking Modal -->
+    <div id="exam-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-xl">
+            <div class="modal-header">
+                <h2 id="exam-modal-title"><i class="fas fa-clipboard-check"></i> Exam</h2>
+                <div class="exam-timer">
+                    <i class="fas fa-clock"></i>
+                    <span id="exam-timer">00:00</span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div id="exam-content">
+                    <!-- Exam questions will be loaded here -->
+                </div>
+
+                <div class="exam-navigation">
+                    <button class="btn btn-outline" onclick="previousQuestion()" id="prev-btn" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                        Previous
+                    </button>
+                    <span id="question-indicator">Question 1 of 10</span>
+                    <button class="btn btn-outline" onclick="nextQuestion()" id="next-btn">
+                        Next
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="btn btn-primary" onclick="submitExam()" id="submit-btn" style="display: none;">
+                        <i class="fas fa-check"></i>
+                        Submit Exam
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="results-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-chart-bar"></i> Exam Results</h2>
+                <span class="close" onclick="closeModal('results-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="results-content">
+                    <!-- Results will be displayed here -->
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-outline" onclick="closeModal('results-modal')">
+                        <i class="fas fa-times"></i>
+                        Close
+                    </button>
+                    <button class="btn btn-primary" onclick="viewDetailedResults()">
+                        <i class="fas fa-eye"></i>
+                        View Detailed Results
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alert-container" class="alert-container"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4><i class="fas fa-brain"></i> AI Exam System</h4>
+                <p>Revolutionizing education with intelligent assessment technology</p>
+            </div>
+
+            <div class="footer-section">
+                <h4>Features</h4>
+                <ul>
+                    <li><a href="#"><i class="fas fa-robot"></i> AI Question Generation</a></li>
+                    <li><a href="#"><i class="fas fa-database"></i> Question Bank</a></li>
+                    <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li>
+                    <li><a href="#"><i class="fas fa-mobile-alt"></i> Mobile Support</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#"><i class="fas fa-question-circle"></i> Help Center</a></li>
+                    <li><a href="#"><i class="fas fa-book"></i> Documentation</a></li>
+                    <li><a href="#"><i class="fas fa-envelope"></i> Contact Us</a></li>
+                    <li><a href="#"><i class="fas fa-bug"></i> Report Issue</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Connect</h4>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-github"></i></a>
+                    <a href="#" class="social-link"><i class="fab fa-youtube"></i></a>
+                </div>
+                <p class="footer-copyright">
+                    © 2024 AI Exam System. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Files -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/exam.js"></script>
+    <script src="/static/js/question-browser.js"></script>
+
+    <!-- Additional JavaScript for Enhanced Features -->
+    <script>
+        // Global variables
+        let currentUser = null;
+        let authToken = localStorage.getItem('authToken');
+        let currentExam = null;
+        let examTimer = null;
+        let selectedQuestions = [];
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            if (authToken) {
+                loadUserProfile();
+            } else {
+                showLandingPage();
+            }
+
+            // Initialize calendar
+            initializeCalendar();
+
+            // Initialize tooltips and other UI components
+            initializeUI();
+        });
+
+        // Calendar functionality
+        let currentDate = new Date();
+
+        function initializeCalendar() {
+            updateCalendarDisplay();
+        }
+
+        function updateCalendarDisplay() {
+            const monthYear = document.getElementById('calendar-month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+
+            if (!monthYear || !calendarGrid) return;
+
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+
+            monthYear.textContent = `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+            // Generate calendar days
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            let calendarHTML = '<div class="calendar-days">';
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            // Add day headers
+            dayNames.forEach(day => {
+                calendarHTML += `<div class="calendar-day-header">${day}</div>`;
+            });
+
+            // Add calendar days
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+
+                const isCurrentMonth = date.getMonth() === currentDate.getMonth();
+                const isToday = date.toDateString() === new Date().toDateString();
+
+                let dayClass = 'calendar-day';
+                if (!isCurrentMonth) dayClass += ' other-month';
+                if (isToday) dayClass += ' today';
+
+                calendarHTML += `<div class="${dayClass}" onclick="selectDate('${date.toISOString()}')">${date.getDate()}</div>`;
+            }
+
+            calendarHTML += '</div>';
+            calendarGrid.innerHTML = calendarHTML;
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateCalendarDisplay();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateCalendarDisplay();
+        }
+
+        function selectDate(dateString) {
+            const selectedDate = new Date(dateString);
+            console.log('Selected date:', selectedDate);
+            // Add functionality for date selection
+        }
+
+        // UI Initialization
+        function initializeUI() {
+            // Add click handlers for modal backgrounds
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    // Close any open modals
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        if (modal.style.display !== 'none') {
+                            modal.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        }
+
+        // Utility functions
+        function showBrowseQuestions() {
+            showQuestionBrowser();
+        }
+
+        function showForgotPassword() {
+            showAlert('Password reset functionality will be available soon!', 'info');
+        }
+
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript Error:', e.error);
+            showAlert('An unexpected error occurred. Please refresh the page.', 'error');
+        });
+
+        // Service Worker registration for offline support (optional)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed');
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
