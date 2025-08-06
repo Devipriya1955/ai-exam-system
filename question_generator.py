@@ -1,5 +1,5 @@
 import os
-import openai
+from groq import Groq
 import json
 import random
 from typing import List, Dict, Any
@@ -13,8 +13,8 @@ from static_question_bank import get_questions_by_criteria, get_subjects, get_to
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Initialize Groq client (will be initialized when needed)
+groq_client = None
 
 class QuestionGenerator:
     def __init__(self):
@@ -30,26 +30,34 @@ class QuestionGenerator:
 
     def generate_questions_ai(self, subject: str, topic: str, difficulty: str,
                              question_type: str, count: int = 5, language: str = 'en') -> List[Dict]:
-        """Generate questions using OpenAI API or fallback templates"""
+        """Generate questions using Groq API or fallback templates"""
         try:
-            # Check if OpenAI API key is configured
-            api_key = os.getenv('OPENAI_API_KEY')
-            if not api_key or api_key == 'your_openai_api_key_here':
-                print("OpenAI API key not configured, using fallback question generation")
+            # Check if Groq API key is configured
+            api_key = os.getenv('GROQ_API_KEY')
+            if not api_key or api_key == 'your_groq_api_key_here':
+                print("Groq API key not configured, using fallback question generation")
                 return self._generate_fallback_questions(subject, topic, difficulty, question_type, count, language)
+
+            # Initialize Groq client
+            global groq_client
+            if groq_client is None:
+                groq_client = Groq(api_key=api_key)
 
             # Create prompt based on question type
             prompt = self._create_prompt(subject, topic, difficulty, question_type, count, language)
 
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=f"You are an expert educator and question generator. Generate high-quality educational questions in the specified format.\n\n{prompt}",
+            response = groq_client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[
+                    {"role": "system", "content": "You are an expert educator and question generator. Generate high-quality educational questions in the specified format."},
+                    {"role": "user", "content": prompt}
+                ],
                 max_tokens=2000,
                 temperature=0.7
             )
 
             # Parse the response
-            questions_text = response.choices[0].text
+            questions_text = response.choices[0].message.content
             questions = self._parse_ai_response(questions_text, subject, topic, difficulty, question_type, language)
 
             return questions
@@ -59,7 +67,7 @@ class QuestionGenerator:
 
     def _create_prompt(self, subject: str, topic: str, difficulty: str,
                       question_type: str, count: int, language: str) -> str:
-        """Create prompt for OpenAI based on parameters"""
+        """Create prompt for Groq based on parameters"""
 
         language_name = self.supported_languages.get(language, 'English')
 
@@ -178,7 +186,7 @@ class QuestionGenerator:
 
     def _generate_fallback_questions(self, subject: str, topic: str, difficulty: str,
                                    question_type: str, count: int = 5, language: str = 'en') -> List[Dict]:
-        """Generate template-based questions when OpenAI is not available"""
+        """Generate template-based questions when Groq is not available"""
         try:
             fallback_questions = []
 
@@ -360,24 +368,32 @@ class QuestionGenerator:
             question_types = ['mcq', 'short_answer']
 
         try:
-            # Check if OpenAI API key is configured
-            api_key = os.getenv('OPENAI_API_KEY')
-            if not api_key or api_key == 'your_openai_api_key_here':
-                print("OpenAI API key not configured, using enhanced template generation")
+            # Check if Groq API key is configured
+            api_key = os.getenv('GROQ_API_KEY')
+            if not api_key or api_key == 'your_groq_api_key_here':
+                print("Groq API key not configured, using enhanced template generation")
                 return self._generate_enhanced_template_questions(quiz_title, subject, difficulty, count, question_types)
+
+            # Initialize Groq client
+            global groq_client
+            if groq_client is None:
+                groq_client = Groq(api_key=api_key)
 
             # Create AI prompt based on quiz title
             prompt = self._create_quiz_title_prompt(quiz_title, subject, difficulty, count, question_types)
 
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=prompt,
+            response = groq_client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[
+                    {"role": "system", "content": "You are an expert educator and question generator. Generate high-quality educational questions based on the quiz title and requirements."},
+                    {"role": "user", "content": prompt}
+                ],
                 max_tokens=2500,
                 temperature=0.7
             )
 
             # Parse the response
-            questions_text = response.choices[0].text
+            questions_text = response.choices[0].message.content
             questions = self._parse_quiz_ai_response(questions_text, subject, difficulty, question_types)
 
             return questions[:count]  # Ensure we don't exceed requested count

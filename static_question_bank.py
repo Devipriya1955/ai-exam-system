@@ -2,6 +2,21 @@
 Static Question Bank - Comprehensive collection of educational questions
 """
 
+def _normalize_subject_name(subject_display_name):
+    """Convert display subject name back to internal format"""
+    if not subject_display_name:
+        return None
+
+    subject_mapping = {
+        "computer science": "computer_science",
+        "mathematics": "mathematics",
+        "physics": "physics",
+        "chemistry": "chemistry",
+        "biology": "biology"
+    }
+
+    return subject_mapping.get(subject_display_name.lower(), subject_display_name.lower())
+
 STATIC_QUESTION_BANK = {
     "mathematics": {
         "algebra": {
@@ -268,9 +283,12 @@ def get_questions_by_criteria(subject=None, topic=None, difficulty=None, questio
     Retrieve questions based on specified criteria
     """
     questions = []
-    
+
+    # Normalize subject name if provided
+    normalized_subject = _normalize_subject_name(subject) if subject else None
+
     for subj, topics in STATIC_QUESTION_BANK.items():
-        if subject and subj.lower() != subject.lower():
+        if normalized_subject and subj.lower() != normalized_subject.lower():
             continue
             
         for top, difficulties in topics.items():
@@ -310,7 +328,15 @@ def get_questions_by_criteria(subject=None, topic=None, difficulty=None, questio
 
 def get_subjects():
     """Get all available subjects"""
-    return list(STATIC_QUESTION_BANK.keys())
+    subjects = list(STATIC_QUESTION_BANK.keys())
+    # Convert to proper display format
+    formatted_subjects = []
+    for subject in subjects:
+        if subject == "computer_science":
+            formatted_subjects.append("Computer Science")
+        else:
+            formatted_subjects.append(subject.capitalize())
+    return formatted_subjects
 
 def get_topics(subject):
     """Get all topics for a subject"""

@@ -53,7 +53,7 @@ async function loadSubjectsForBrowser() {
         response.subjects.forEach(subject => {
             const option = document.createElement('option');
             option.value = subject;
-            option.textContent = subject.charAt(0).toUpperCase() + subject.slice(1).replace('_', ' ');
+            option.textContent = subject; // Subject names are already properly formatted from backend
             subjectSelect.appendChild(option);
         });
     } catch (error) {

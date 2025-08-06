@@ -89,7 +89,9 @@ def get_profile():
 @auth_required
 def get_subjects():
     try:
-        subjects = db.get_subjects()
+        # Get subjects from static question bank instead of database
+        from static_question_bank import get_subjects
+        subjects = get_subjects()
         return jsonify({'subjects': subjects}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -98,8 +100,13 @@ def get_subjects():
 @auth_required
 def get_topics(subject):
     try:
-        topics = db.get_topics_by_subject(subject)
-        return jsonify({'topics': topics}), 200
+        # Get topics from static question bank instead of database
+        from static_question_bank import get_topics, _normalize_subject_name
+        normalized_subject = _normalize_subject_name(subject)
+        topics = get_topics(normalized_subject) if normalized_subject else []
+        # Format topic names properly
+        formatted_topics = [topic.replace('_', ' ').title() for topic in topics]
+        return jsonify({'topics': formatted_topics}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -426,7 +433,16 @@ def submit_exam():
         evaluation = evaluator.evaluate_exam_response(exam['paper_data'], responses)
 
         # Calculate additional metrics
-        total_questions = len(exam['paper_data']['questions'])
+        # Get total questions from all sections
+        total_questions = 0
+        if 'sections' in exam['paper_data']:
+            for section in exam['paper_data']['sections']:
+                if 'questions' in section:
+                    total_questions += len(section['questions'])
+        else:
+            # Fallback for old structure
+            total_questions = len(exam['paper_data'].get('questions', []))
+
         answered_questions = len([a for a in data['answers'].values() if a])
         correct_answers = evaluation.get('correct_answers', 0)
         total_marks = evaluation.get('total_marks', total_questions)

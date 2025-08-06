@@ -1,5 +1,5 @@
 import os
-import openai
+from groq import Groq
 import re
 from typing import Dict, List, Any, Tuple
 from datetime import datetime
@@ -11,8 +11,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI
-openai.api_key = os.getenv('OPENAI_API_KEY')
+# Initialize Groq client (will be initialized when needed)
+groq_client = None
 
 class ResponseEvaluator:
     def __init__(self):
@@ -48,23 +48,31 @@ class ResponseEvaluator:
     def evaluate_text_response_ai(self, question: Dict, student_answer: str) -> Dict:
         """Evaluate text response using AI or fallback method"""
         try:
-            # Check if OpenAI API key is configured
-            api_key = os.getenv('OPENAI_API_KEY')
-            if not api_key or api_key == 'your_openai_api_key_here':
-                print("OpenAI API key not configured, using fallback evaluation")
+            # Check if Groq API key is configured
+            api_key = os.getenv('GROQ_API_KEY')
+            if not api_key or api_key == 'your_groq_api_key_here':
+                print("Groq API key not configured, using fallback evaluation")
                 return self._fallback_evaluation(question, student_answer)
+
+            # Initialize Groq client
+            global groq_client
+            if groq_client is None:
+                groq_client = Groq(api_key=api_key)
 
             # Create evaluation prompt
             prompt = self._create_evaluation_prompt(question, student_answer)
 
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=f"You are an expert educator evaluating student responses. Provide fair, constructive feedback with specific scores.\n\n{prompt}",
+            response = groq_client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[
+                    {"role": "system", "content": "You are an expert educator evaluating student responses. Provide fair, constructive feedback with specific scores."},
+                    {"role": "user", "content": prompt}
+                ],
                 max_tokens=500,
                 temperature=0.3
             )
 
-            evaluation_text = response.choices[0].text
+            evaluation_text = response.choices[0].message.content
             evaluation = self._parse_ai_evaluation(evaluation_text, question.get('marks', 1))
 
             return evaluation
@@ -324,9 +332,14 @@ class ResponseEvaluator:
 
         try:
             if evaluation['score'] < evaluation['max_score'] * 0.5:  # Less than 50%
-                # Check if OpenAI API key is configured
-                api_key = os.getenv('OPENAI_API_KEY')
-                if api_key and api_key != 'your_openai_api_key_here':
+                # Check if Groq API key is configured
+                api_key = os.getenv('GROQ_API_KEY')
+                if api_key and api_key != 'your_groq_api_key_here':
+                    # Initialize Groq client
+                    global groq_client
+                    if groq_client is None:
+                        groq_client = Groq(api_key=api_key)
+
                     # Generate AI-powered hints
                     prompt = f"""
                     Generate 3 helpful study hints for a student who answered this question incorrectly:
@@ -340,14 +353,17 @@ class ResponseEvaluator:
                     Format as a simple list.
                     """
 
-                    response = openai.Completion.create(
-                        engine="text-davinci-003",
-                        prompt=f"You are a helpful tutor providing study hints.\n\n{prompt}",
+                    response = groq_client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=[
+                            {"role": "system", "content": "You are a helpful tutor providing study hints."},
+                            {"role": "user", "content": prompt}
+                        ],
                         max_tokens=300,
                         temperature=0.7
                     )
 
-                    hints_text = response.choices[0].text
+                    hints_text = response.choices[0].message.content
                     hints = [hint.strip() for hint in hints_text.split('\n') if hint.strip()]
                 else:
                     # Fallback hints when OpenAI is not available
