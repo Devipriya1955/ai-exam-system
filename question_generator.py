@@ -456,23 +456,40 @@ class QuestionGenerator:
                                             difficulty: str, count: int,
                                             question_types: List[str]) -> List[Dict]:
         """Generate enhanced template questions based on quiz title"""
+        print(f"🔧 Enhanced Template Generation:")
+        print(f"   - Quiz Title: {quiz_title}")
+        print(f"   - Subject: {subject}")
+        print(f"   - Difficulty: {difficulty}")
+        print(f"   - Requested Count: {count}")
+        print(f"   - Question Types: {question_types}")
+
         questions = []
 
         # Extract key topics from quiz title
         topics = self._extract_topics_from_title(quiz_title, subject)
+        print(f"   - Extracted Topics: {topics}")
 
         for i in range(count):
             question_type = question_types[i % len(question_types)]
             topic = topics[i % len(topics)] if topics else subject
 
+            print(f"   - Generating Question {i+1}/{count}: Type={question_type}, Topic={topic}")
+
             # Generate contextual question based on quiz title
             if question_type.lower() == 'mcq':
                 question = self._generate_contextual_mcq(quiz_title, subject, topic, difficulty)
-            else:
+            elif question_type.lower() == 'short_answer':
                 question = self._generate_contextual_short_answer(quiz_title, subject, topic, difficulty)
+            elif question_type.lower() == 'descriptive':
+                question = self._generate_contextual_descriptive(quiz_title, subject, topic, difficulty)
+            else:
+                # Default to MCQ if unknown type
+                question = self._generate_contextual_mcq(quiz_title, subject, topic, difficulty)
 
             questions.append(question)
+            print(f"   - Question {i+1} generated successfully")
 
+        print(f"✅ Generated {len(questions)} questions total")
         return questions
 
     def _extract_topics_from_title(self, quiz_title: str, subject: str) -> List[str]:
@@ -579,6 +596,39 @@ class QuestionGenerator:
             'topic': topic,
             'difficulty': difficulty,
             'type': 'short_answer',
+            'sample_answer': sample_answer,
+            'key_points': key_points,
+            'marks': marks,
+            'language': 'en',
+            'source': 'enhanced_template',
+            'quiz_context': quiz_title
+        }
+
+    def _generate_contextual_descriptive(self, quiz_title: str, subject: str, topic: str, difficulty: str) -> Dict:
+        """Generate contextual descriptive/essay question based on quiz title"""
+
+        if difficulty.lower() == 'easy':
+            question_text = f"Write a short essay explaining the basic concepts of {topic} as they relate to '{quiz_title}'."
+            sample_answer = f"The basic concepts of {topic} in the context of {quiz_title} include fundamental principles and their practical applications."
+            key_points = f"Basic definitions, simple examples, clear explanations"
+            marks = 8
+        elif difficulty.lower() == 'hard':
+            question_text = f"Critically analyze and evaluate the role of {topic} in '{quiz_title}', discussing both theoretical foundations and practical implications."
+            sample_answer = f"A comprehensive analysis of {topic} in {quiz_title} requires examining theoretical frameworks, practical applications, and critical evaluation of current approaches."
+            key_points = f"Critical analysis, theoretical depth, practical implications, evaluation"
+            marks = 15
+        else:  # medium
+            question_text = f"Discuss the significance of {topic} in the context of '{quiz_title}', providing relevant examples and explanations."
+            sample_answer = f"The significance of {topic} in {quiz_title} can be understood through its key principles and real-world applications."
+            key_points = f"Clear discussion, relevant examples, good explanations"
+            marks = 10
+
+        return {
+            'question': question_text,
+            'subject': subject,
+            'topic': topic,
+            'difficulty': difficulty,
+            'type': 'descriptive',
             'sample_answer': sample_answer,
             'key_points': key_points,
             'marks': marks,
@@ -726,30 +776,64 @@ class QuestionGenerator:
                                 ai_ratio: float = 0.5) -> List[Dict]:
         """Generate questions using both AI and question bank"""
         try:
+            print(f"🔧 Manual Section Question Generation:")
+            print(f"   - Subject: {subject}")
+            print(f"   - Topic: {topic}")
+            print(f"   - Difficulty: {difficulty}")
+            print(f"   - Question Type: {question_type}")
+            print(f"   - Requested Count: {count}")
+            print(f"   - AI Ratio: {ai_ratio}")
+
             ai_count = int(count * ai_ratio)
             bank_count = count - ai_count
+
+            print(f"   - Bank Questions: {bank_count}")
+            print(f"   - AI Questions: {ai_count}")
 
             questions = []
 
             # Get questions from bank first
             if bank_count > 0:
+                print(f"   - Getting {bank_count} questions from bank...")
                 bank_questions = self.get_questions_from_bank(
                     subject, topic, difficulty, question_type, bank_count, language
                 )
+                print(f"   - Bank returned: {len(bank_questions)} questions")
                 questions.extend(bank_questions)
 
-            # Generate remaining questions with AI
+            # Generate remaining questions with AI or enhanced templates
             remaining_count = count - len(questions)
             if remaining_count > 0:
+                print(f"   - Generating {remaining_count} additional questions...")
+
+                # Try AI generation first
                 ai_questions = self.generate_questions_ai(
                     subject, topic, difficulty, question_type, remaining_count, language
                 )
+                print(f"   - AI returned: {len(ai_questions)} questions")
                 questions.extend(ai_questions)
+
+                # If still need more questions, use enhanced template generation
+                still_remaining = count - len(questions)
+                if still_remaining > 0:
+                    print(f"   - Still need {still_remaining} questions, using enhanced templates...")
+                    template_questions = self._generate_enhanced_template_questions(
+                        quiz_title=f"{subject} - {topic}",
+                        subject=subject,
+                        difficulty=difficulty,
+                        count=still_remaining,
+                        question_types=[question_type]
+                    )
+                    print(f"   - Enhanced templates returned: {len(template_questions)} questions")
+                    questions.extend(template_questions)
 
             # Shuffle questions
             random.shuffle(questions)
 
-            return questions[:count]  # Ensure we don't exceed requested count
+            final_questions = questions[:count]
+            print(f"✅ Manual section generated {len(final_questions)} questions (requested: {count})")
+
+            return final_questions  # Ensure we don't exceed requested count
         except Exception as e:
             print(f"Error generating mixed questions: {e}")
             return []
@@ -767,7 +851,7 @@ class QuestionGenerator:
                 'title': paper_config.get('title', 'Question Paper'),
                 'subject': paper_config['subject'],
                 'total_marks': 0,
-                'duration': paper_config.get('duration', 60),  # minutes
+                'duration': paper_config.get('duration'),  # User's specified duration
                 'instructions': paper_config.get('instructions', []),
                 'sections': [],
                 'created_at': datetime.utcnow(),

@@ -422,8 +422,16 @@ function showCreateExam() {
 }
 
 function showQuestionBank() {
+    console.log('🔥 showQuestionBank() button clicked!');
+    alert('Question Bank button clicked! Check console for details.');
+
     // Open the question browser modal
     showQuestionBrowser();
+}
+
+function openModal(modalId) {
+    closeAllModals();
+    document.getElementById(modalId).style.display = 'block';
 }
 
 function closeModal(modalId) {
@@ -531,6 +539,22 @@ function formatDuration(minutes) {
 // Initialize app when page loads
 document.addEventListener('DOMContentLoaded', function() {
     clearAllAlerts(); // Clear any existing alerts on page load
+
+    // Debug: Check if functions exist
+    console.log('=== Function Availability Check ===');
+    console.log('showQuestionBank exists:', typeof showQuestionBank !== 'undefined');
+    console.log('showQuestionBrowser exists:', typeof showQuestionBrowser !== 'undefined');
+    console.log('openModal exists:', typeof openModal !== 'undefined');
+    console.log('closeModal exists:', typeof closeModal !== 'undefined');
+
+    // Check if modal exists
+    const modal = document.getElementById('question-browser-modal');
+    console.log('question-browser-modal exists:', !!modal);
+
+    if (modal) {
+        console.log('Modal display style:', modal.style.display);
+        console.log('Modal class:', modal.className);
+    }
 
     // Check if user is already logged in
     const token = localStorage.getItem('authToken');

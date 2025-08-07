@@ -15,9 +15,10 @@ async function loadTeacherDashboard() {
         if (totalResponsesEl) totalResponsesEl.textContent = data.total_responses || 0;
 
         // Load recent exams
+        console.log('📋 Recent exams from API:', data.recent_exams);
         loadRecentExams(data.recent_exams || []);
 
-        console.log('Teacher dashboard loaded successfully');
+        console.log('✅ Teacher dashboard loaded successfully');
     } catch (error) {
         console.error('Teacher dashboard error:', error);
         showAlert('Failed to load teacher dashboard: ' + error.message, 'error');
@@ -61,13 +62,24 @@ async function loadStudentDashboard() {
 
 // Load recent exams for teacher
 function loadRecentExams(exams) {
+    console.log('📚 Loading recent exams:', exams);
+    console.log('📊 Number of exams received:', exams.length);
+
     const container = document.getElementById('recent-exams-list');
+    if (!container) {
+        console.error('❌ recent-exams-list container not found!');
+        return;
+    }
+
     container.innerHTML = '';
-    
+
     if (exams.length === 0) {
+        console.log('⚠️ No exams to display');
         container.innerHTML = '<p class="no-data">No exams created yet.</p>';
         return;
     }
+
+    console.log('✅ Displaying', exams.length, 'exams');
     
     exams.forEach(exam => {
         const examCard = createExamCard(exam, true);

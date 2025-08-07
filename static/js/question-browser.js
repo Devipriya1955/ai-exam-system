@@ -5,37 +5,81 @@ let currentQuestions = [];
 
 // Show question browser modal
 async function showQuestionBrowser() {
+    console.log('🚀 showQuestionBrowser() function called!');
+    alert('showQuestionBrowser() function called! Modal should open now.');
+
     try {
-        openModal('question-browser-modal');
+        console.log('Checking if modal exists...');
+
+        // Check if modal exists
+        const modal = document.getElementById('question-browser-modal');
+        if (!modal) {
+            console.error('❌ Question browser modal not found!');
+            alert('ERROR: Modal element not found in DOM!');
+            showAlert('Question browser modal not found in page', 'error');
+            return;
+        }
+
+        console.log('✅ Modal found, opening...');
+        alert('Modal found! Calling openModal...');
+
+        // Try to open modal directly first
+        modal.style.display = 'block';
+        console.log('Modal display set to block directly');
+
+        console.log('Loading question browser data...');
         await loadQuestionBrowserData();
+
+        console.log('✅ Question browser opened successfully');
     } catch (error) {
-        console.error('Error opening question browser:', error);
-        showAlert('Failed to open question browser', 'error');
+        console.error('💥 Error opening question browser:', error);
+        alert('ERROR: ' + error.message);
+        showAlert('Failed to open question browser: ' + error.message, 'error');
     }
 }
 
 // Load initial data for question browser
 async function loadQuestionBrowserData() {
     try {
-        console.log('Loading question browser data...');
+        console.log('=== Loading question browser data ===');
         showLoading(true);
 
         // Load subjects
-        console.log('Loading subjects...');
-        await loadSubjectsForBrowser();
+        console.log('Step 1: Loading subjects...');
+        try {
+            await loadSubjectsForBrowser();
+            console.log('✅ Subjects loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load subjects:', error);
+            throw new Error('Failed to load subjects: ' + error.message);
+        }
 
         // Load statistics
-        console.log('Loading statistics...');
-        await loadQuestionStats();
+        console.log('Step 2: Loading statistics...');
+        try {
+            await loadQuestionStats();
+            console.log('✅ Statistics loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load statistics:', error);
+            // Don't throw error for stats, it's not critical
+            console.log('⚠️ Continuing without statistics');
+        }
 
         // Load all questions initially
-        console.log('Loading questions...');
-        await searchQuestions();
+        console.log('Step 3: Loading questions...');
+        try {
+            await searchQuestions();
+            console.log('✅ Questions loaded successfully');
+        } catch (error) {
+            console.error('❌ Failed to load questions:', error);
+            throw new Error('Failed to load questions: ' + error.message);
+        }
 
-        console.log('Question browser data loaded successfully');
+        console.log('🎉 Question browser data loaded successfully');
     } catch (error) {
-        console.error('Error loading question browser data:', error);
+        console.error('💥 Error loading question browser data:', error);
         showAlert('Failed to load question browser data: ' + error.message, 'error');
+        throw error; // Re-throw to be caught by showQuestionBrowser
     } finally {
         showLoading(false);
     }
@@ -44,20 +88,34 @@ async function loadQuestionBrowserData() {
 // Load subjects for browser
 async function loadSubjectsForBrowser() {
     try {
+        console.log('Making API call to /question-bank/subjects...');
         const response = await apiCall('/question-bank/subjects');
+        console.log('Subjects API response:', response);
+
         const subjectSelect = document.getElementById('browser-subject');
-        
+        if (!subjectSelect) {
+            throw new Error('Subject select element not found');
+        }
+
         // Clear existing options except "All Subjects"
         subjectSelect.innerHTML = '<option value="">All Subjects</option>';
-        
-        response.subjects.forEach(subject => {
-            const option = document.createElement('option');
-            option.value = subject;
-            option.textContent = subject; // Subject names are already properly formatted from backend
-            subjectSelect.appendChild(option);
-        });
+
+        if (response && response.subjects && Array.isArray(response.subjects)) {
+            console.log(`Found ${response.subjects.length} subjects`);
+            response.subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject; // Subject names are already properly formatted from backend
+                subjectSelect.appendChild(option);
+            });
+            console.log('Subjects loaded into dropdown successfully');
+        } else {
+            console.error('Invalid subjects response format:', response);
+            throw new Error('Invalid subjects response format');
+        }
     } catch (error) {
         console.error('Failed to load subjects:', error);
+        throw error; // Re-throw to be caught by parent function
     }
 }
 
@@ -134,8 +192,12 @@ function displayQuestionStats(stats) {
 // Search questions based on filters
 async function searchQuestions() {
     try {
+        console.log('🔍 searchQuestions() called');
+        alert('🔍 Search function called! Searching questions...');
+
         showLoading(true);
-        
+        console.log('Starting question search...');
+
         const filters = {
             subject: document.getElementById('browser-subject').value,
             topic: document.getElementById('browser-topic').value,
@@ -143,21 +205,43 @@ async function searchQuestions() {
             type: document.getElementById('browser-type').value,
             limit: 50
         };
-        
+
+        console.log('Search filters:', filters);
+
         // Build query string
         const queryParams = new URLSearchParams();
         Object.entries(filters).forEach(([key, value]) => {
             if (value) queryParams.append(key, value);
         });
-        
-        const response = await apiCall(`/question-bank/browse?${queryParams.toString()}`);
-        currentQuestions = response.questions;
-        
-        displayQuestions(response.questions);
-        updateResultsTitle(response.total, filters);
-        
+
+        const queryString = queryParams.toString();
+        const apiUrl = `/api/question-bank/browse${queryString ? '?' + queryString : ''}`;
+        console.log('API URL:', apiUrl);
+
+        const response = await apiCall(apiUrl);
+        console.log('API Response:', response);
+
+        if (response && response.questions) {
+            currentQuestions = response.questions;
+            displayQuestions(response.questions);
+            updateResultsTitle(response.total || response.questions.length, filters);
+
+            console.log(`Found ${response.questions.length} questions`);
+            showAlert(`Found ${response.questions.length} questions`, 'success');
+        } else {
+            console.error('Invalid response format:', response);
+            currentQuestions = [];
+            displayQuestions([]);
+            updateResultsTitle(0, filters);
+            showAlert('No questions found or invalid response', 'warning');
+        }
+
     } catch (error) {
-        showAlert('Failed to search questions', 'error');
+        console.error('Search error:', error);
+        showAlert('Failed to search questions: ' + error.message, 'error');
+        currentQuestions = [];
+        displayQuestions([]);
+        updateResultsTitle(0, {});
     } finally {
         showLoading(false);
     }
@@ -166,11 +250,30 @@ async function searchQuestions() {
 // Display questions in the browser
 function displayQuestions(questions) {
     const container = document.getElementById('questions-list');
-    
-    if (questions.length === 0) {
-        container.innerHTML = '<div class="no-questions">No questions found matching your criteria.</div>';
+    console.log('Displaying questions:', questions);
+
+    if (!container) {
+        console.error('Questions list container not found!');
+        showAlert('Error: Questions display container not found', 'error');
         return;
     }
+
+    if (!questions || questions.length === 0) {
+        container.innerHTML = `
+            <div class="no-questions" style="text-align: center; padding: 40px; color: #666;">
+                <i class="fas fa-search" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <h3>No questions found</h3>
+                <p>Try adjusting your search filters or browse all questions.</p>
+                <button class="btn btn-primary" onclick="clearFilters()" style="margin-top: 16px;">
+                    <i class="fas fa-refresh"></i> Clear Filters
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    console.log(`Displaying ${questions.length} questions`);
+}
     
     const questionsHTML = questions.map((question, index) => `
         <div class="question-card" data-index="${index}">
@@ -267,6 +370,9 @@ function updateSelectionCount() {
 
 // Clear all filters
 function clearFilters() {
+    console.log('🔧 clearFilters() called');
+    alert('🔧 Clear Filters function called! Clearing all filters...');
+
     document.getElementById('browser-subject').value = '';
     document.getElementById('browser-topic').value = '';
     document.getElementById('browser-difficulty').value = '';
@@ -282,12 +388,65 @@ function clearFilters() {
 // Preview question in modal
 function previewQuestion(index) {
     const question = currentQuestions[index];
-    // This would open a preview modal - implement as needed
-    showAlert('Question preview feature coming soon!', 'info');
+
+    // Create preview modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-eye"></i> Question Preview</h2>
+                <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="question-preview-card">
+                    <div class="question-meta-info">
+                        <span class="meta-item"><strong>Subject:</strong> ${question.subject}</span>
+                        <span class="meta-item"><strong>Topic:</strong> ${question.topic}</span>
+                        <span class="meta-item"><strong>Difficulty:</strong> <span class="difficulty-badge ${question.difficulty}">${question.difficulty}</span></span>
+                        <span class="meta-item"><strong>Type:</strong> ${question.type.replace('_', ' ').toUpperCase()}</span>
+                        <span class="meta-item"><strong>Marks:</strong> ${question.marks || 1}</span>
+                    </div>
+
+                    <div class="question-content-preview">
+                        <h4>Question:</h4>
+                        <p class="question-text">${question.question}</p>
+
+                        ${question.type === 'mcq' ? `
+                            <h4>Options:</h4>
+                            <div class="options-preview">
+                                <div class="option-item ${question.correct_answer === 'a' ? 'correct' : ''}">A) ${question.options.a}</div>
+                                <div class="option-item ${question.correct_answer === 'b' ? 'correct' : ''}">B) ${question.options.b}</div>
+                                <div class="option-item ${question.correct_answer === 'c' ? 'correct' : ''}">C) ${question.options.c}</div>
+                                <div class="option-item ${question.correct_answer === 'd' ? 'correct' : ''}">D) ${question.options.d}</div>
+                            </div>
+                            <p><strong>Correct Answer:</strong> ${question.correct_answer.toUpperCase()}) ${question.options[question.correct_answer]}</p>
+                        ` : ''}
+
+                        ${question.sample_answer ? `
+                            <h4>Sample Answer:</h4>
+                            <p class="sample-answer">${question.sample_answer}</p>
+                        ` : ''}
+
+                        ${question.explanation ? `
+                            <h4>Explanation:</h4>
+                            <p class="explanation">${question.explanation}</p>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
 }
 
 // Export selected questions
 function exportQuestions() {
+    console.log('📤 exportQuestions() called');
+    alert('📤 Export function called! Exporting questions...');
+
     if (currentQuestions.length === 0) {
         showAlert('No questions to export', 'warning');
         return;

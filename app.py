@@ -143,6 +143,14 @@ def generate_quiz_from_title():
     try:
         data = request.get_json()
 
+        print(f"🔥 Backend API received request:")
+        print(f"   - Raw data: {data}")
+        print(f"   - Quiz title: {data.get('quiz_title')}")
+        print(f"   - Subject: {data.get('subject')}")
+        print(f"   - Count: {data.get('count', 5)} (default: 5)")
+        print(f"   - Difficulty: {data.get('difficulty', 'medium')}")
+        print(f"   - Question types: {data.get('question_types', ['mcq', 'short_answer'])}")
+
         # Validate required fields
         required_fields = ['quiz_title', 'subject']
         for field in required_fields:
@@ -150,13 +158,18 @@ def generate_quiz_from_title():
                 return jsonify({'error': f'{field} is required'}), 400
 
         # Generate AI-powered questions based on quiz title
+        requested_count = data.get('count', 5)
+        print(f"🎯 Calling question generator with count: {requested_count}")
+
         questions = question_generator.generate_quiz_questions_from_title(
             quiz_title=data['quiz_title'],
             subject=data['subject'],
             difficulty=data.get('difficulty', 'medium'),
-            count=data.get('count', 5),
+            count=requested_count,
             question_types=data.get('question_types', ['mcq', 'short_answer'])
         )
+
+        print(f"📊 Question generator returned {len(questions)} questions")
 
         return jsonify({
             'questions': questions,
@@ -298,7 +311,23 @@ def create_exam():
             if field not in data:
                 return jsonify({'error': f'{field} is required'}), 400
 
+        print(f"🔥 Manual Exam Creation:")
+        print(f"   - Title: {data.get('title')}")
+        print(f"   - Subject: {data.get('subject')}")
+        print(f"   - Number of sections: {len(data.get('sections', []))}")
+
+        for i, section in enumerate(data.get('sections', [])):
+            print(f"   - Section {i+1}:")
+            print(f"     * Title: {section.get('title')}")
+            print(f"     * Subject: {section.get('subject')}")
+            print(f"     * Topic: {section.get('topic')}")
+            print(f"     * Difficulty: {section.get('difficulty')}")
+            print(f"     * Type: {section.get('type')}")
+            print(f"     * Count: {section.get('count')} ← QUESTION COUNT")
+            print(f"     * AI Ratio: {section.get('ai_ratio')}")
+
         # Create question paper
+        print(f"🎯 Creating question paper...")
         paper = question_generator.create_question_paper(data)
 
         if not paper:
@@ -309,7 +338,7 @@ def create_exam():
             'title': data['title'],
             'subject': data['subject'],
             'description': data.get('description', ''),
-            'duration': data.get('duration', 60),
+            'duration': data.get('duration'),  # Use user's input, no default limit
             'total_marks': paper['total_marks'],
             'paper_data': paper,
             'created_by': get_jwt_identity(),
@@ -548,8 +577,8 @@ def teacher_dashboard():
             responses = db.get_exam_responses(exam['_id'])
             total_responses += len(responses)
 
-        # Get recent activity
-        recent_exams = exams[:5]  # Last 5 exams
+        # Get recent activity - show more exams (up to 20)
+        recent_exams = exams[:20]  # Last 20 exams
 
         dashboard_data = {
             'total_exams': total_exams,

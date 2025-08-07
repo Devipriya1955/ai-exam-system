@@ -57,10 +57,23 @@ async function loadTopics(subject, selectElement) {
 
 // Add exam section
 function addExamSection() {
+    alert('🔧 Manual section button clicked!');
+    console.log('🔧 addExamSection() called');
+    console.log('   - Current examSectionCount:', examSectionCount);
+
     examSectionCount++;
-    
+    console.log('   - New examSectionCount:', examSectionCount);
+
     const sectionsContainer = document.getElementById('exam-sections');
-    
+    console.log('   - Sections container found:', !!sectionsContainer);
+
+    if (!sectionsContainer) {
+        console.error('❌ exam-sections container not found!');
+        alert('Error: Cannot find exam sections container. Please refresh the page.');
+        return;
+    }
+
+    console.log('   - Creating section div...');
     const sectionDiv = document.createElement('div');
     sectionDiv.className = 'exam-section';
     sectionDiv.id = `section-${examSectionCount}`;
@@ -116,14 +129,14 @@ function addExamSection() {
             </div>
             <div class="form-group">
                 <label>Number of Questions</label>
-                <input type="number" class="section-count" min="1" max="50" value="5" required>
+                <input type="number" class="section-count" min="1" max="500" value="5" required>
             </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
                 <label>Marks per Question</label>
-                <input type="number" class="section-marks" min="1" max="100" value="1" required>
+                <input type="number" class="section-marks" min="1" max="1000" value="1" required>
             </div>
             <div class="form-group">
                 <label>AI Ratio (0-1)</label>
@@ -138,16 +151,19 @@ function addExamSection() {
     `;
     
     sectionsContainer.appendChild(sectionDiv);
-    
+
     // Load subjects for this section
     loadSubjectsForSection(examSectionCount);
-    
+
     // Add some styling
     sectionDiv.style.border = '1px solid #ddd';
     sectionDiv.style.borderRadius = '8px';
     sectionDiv.style.padding = '1rem';
     sectionDiv.style.marginBottom = '1rem';
     sectionDiv.style.backgroundColor = '#f9f9f9';
+
+    console.log('✅ Manual section created successfully');
+    alert('✅ Manual section added successfully! Fill in the details and click Create Exam.');
 }
 
 // Load subjects for a specific section
@@ -191,27 +207,98 @@ function removeExamSection(sectionId) {
 
 // Generate AI-powered quiz from title
 async function generateAIQuiz() {
+    console.log('🚀 generateAIQuiz() called');
+
     const title = document.getElementById('exam-title').value;
     const subject = document.getElementById('exam-subject').value;
+
+    // Get question count - try form field first, then prompt user
+    let questionCount = 10;
+    const questionCountElement = document.getElementById('ai-question-count');
+
+    if (questionCountElement) {
+        questionCount = parseInt(questionCountElement.value) || 10;
+        console.log('✅ Found question count field, value:', questionCount);
+        alert('✅ Using form field value: ' + questionCount + ' questions');
+    } else {
+        // Fallback: prompt user for number of questions
+        const userInput = prompt('⚠️ Form field not found! How many questions do you want to generate? (1-500)', '10');
+        questionCount = parseInt(userInput) || 10;
+        console.log('⚠️ Question count field not found, using prompt value:', questionCount);
+        alert('⚠️ Using prompt value: ' + questionCount + ' questions');
+    }
+
+    // Get difficulty - try form field first, then use default
+    let difficulty = 'medium';
+    const difficultyElement = document.getElementById('ai-difficulty');
+
+    if (difficultyElement) {
+        difficulty = difficultyElement.value || 'medium';
+        console.log('✅ Found difficulty field, value:', difficulty);
+    } else {
+        console.log('⚠️ Difficulty field not found, using default:', difficulty);
+    }
+
+    // Get question types - try form fields first, then use defaults
+    const questionTypes = [];
+    const mcqElement = document.getElementById('ai-type-mcq');
+    const shortElement = document.getElementById('ai-type-short');
+    const descriptiveElement = document.getElementById('ai-type-descriptive');
+
+    if (mcqElement || shortElement || descriptiveElement) {
+        if (mcqElement && mcqElement.checked) questionTypes.push('mcq');
+        if (shortElement && shortElement.checked) questionTypes.push('short_answer');
+        if (descriptiveElement && descriptiveElement.checked) questionTypes.push('descriptive');
+        console.log('✅ Found question type fields, selected:', questionTypes);
+    } else {
+        // Fallback: use defaults
+        questionTypes.push('mcq', 'short_answer');
+        console.log('⚠️ Question type fields not found, using defaults:', questionTypes);
+    }
+
+    console.log('📊 User Input Values:');
+    console.log('   - Title:', title);
+    console.log('   - Subject:', subject);
+    console.log('   - Question Count:', questionCount);
+    console.log('   - Difficulty:', difficulty);
+    console.log('   - Question Types:', questionTypes);
 
     if (!title || !subject) {
         showAlert('Please enter quiz title and select subject first', 'error');
         return;
     }
 
+    if (questionTypes.length === 0) {
+        showAlert('Please select at least one question type', 'error');
+        return;
+    }
+
+    if (questionCount < 1 || questionCount > 500) {
+        showAlert('Please enter a valid number of questions (1-500)', 'error');
+        return;
+    }
+
+    console.log('✅ Validation passed, making API call...');
     showLoading(true);
 
     try {
+        const requestData = {
+            quiz_title: title,
+            subject: subject,
+            difficulty: difficulty,
+            count: questionCount, // Use user's input for question count
+            question_types: questionTypes // Use user's selected question types
+        };
+
+        console.log('📤 API Request Data:', requestData);
+        alert('📤 Sending API request for ' + questionCount + ' questions of types: ' + questionTypes.join(', '));
+
         const response = await apiCall('/generate-quiz-from-title', {
             method: 'POST',
-            body: JSON.stringify({
-                quiz_title: title,
-                subject: subject,
-                difficulty: 'medium',
-                count: 5,
-                question_types: ['mcq', 'short_answer']
-            })
+            body: JSON.stringify(requestData)
         });
+
+        console.log('📥 API Response:', response);
 
         if (response.questions && response.questions.length > 0) {
             // Clear existing sections
@@ -221,6 +308,7 @@ async function generateAIQuiz() {
             // Create sections based on generated questions
             const mcqQuestions = response.questions.filter(q => q.type === 'mcq');
             const shortAnswerQuestions = response.questions.filter(q => q.type === 'short_answer');
+            const descriptiveQuestions = response.questions.filter(q => q.type === 'descriptive');
 
             if (mcqQuestions.length > 0) {
                 addAIGeneratedSection('Multiple Choice Questions', mcqQuestions, 'mcq');
@@ -228,6 +316,10 @@ async function generateAIQuiz() {
 
             if (shortAnswerQuestions.length > 0) {
                 addAIGeneratedSection('Short Answer Questions', shortAnswerQuestions, 'short_answer');
+            }
+
+            if (descriptiveQuestions.length > 0) {
+                addAIGeneratedSection('Descriptive Questions', descriptiveQuestions, 'descriptive');
             }
 
             showAlert(`Generated ${response.total_questions} questions using ${response.generation_method}!`, 'success');
@@ -303,6 +395,75 @@ function addAIGeneratedSection(sectionTitle, questions, questionType) {
     sectionDiv.style.backgroundColor = '#f8f9ff';
 }
 
+// Add pre-selected section from question bank
+function addPreSelectedSection(sectionTitle, questions, questionType) {
+    examSectionCount++;
+
+    const sectionsContainer = document.getElementById('exam-sections');
+
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'exam-section pre-selected-section';
+    sectionDiv.id = `section-${examSectionCount}`;
+
+    sectionDiv.innerHTML = `
+        <div class="section-header">
+            <h4>${sectionTitle} (From Question Bank)</h4>
+            <div class="bank-badge" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">📚 Question Bank</div>
+            <button type="button" class="btn btn-danger" onclick="removeExamSection(${examSectionCount})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+
+        <div class="bank-questions-preview">
+            <h5>Selected Questions Preview:</h5>
+            <div class="questions-list">
+                ${questions.map((q, index) => `
+                    <div class="question-preview">
+                        <div class="question-header">
+                            <strong>Q${index + 1}:</strong>
+                            <span class="question-meta">
+                                <span class="difficulty" style="background: ${q.difficulty === 'easy' ? '#28a745' : q.difficulty === 'medium' ? '#ffc107' : '#dc3545'}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${q.difficulty}</span>
+                                <span class="marks" style="background: #6c757d; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">${q.marks || 1} marks</span>
+                            </span>
+                        </div>
+                        <div class="question-text">${q.question}</div>
+                        ${q.type === 'mcq' ? `
+                            <div class="options-preview">
+                                <small>Options: A) ${q.options.a} B) ${q.options.b} C) ${q.options.c} D) ${q.options.d}</small>
+                                <small><strong>Answer:</strong> ${q.correct_answer.toUpperCase()}</small>
+                            </div>
+                        ` : `
+                            <div class="answer-preview">
+                                <small><strong>Sample Answer:</strong> ${q.sample_answer || 'Not provided'}</small>
+                            </div>
+                        `}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <input type="hidden" class="section-title" value="${sectionTitle}">
+        <input type="hidden" class="section-subject" value="${questions[0]?.subject || 'General'}">
+        <input type="hidden" class="section-topic" value="${questions[0]?.topic || 'Question Bank'}">
+        <input type="hidden" class="section-difficulty" value="${questions[0]?.difficulty || 'medium'}">
+        <input type="hidden" class="section-type" value="${questionType}">
+        <input type="hidden" class="section-count" value="${questions.length}">
+        <input type="hidden" class="section-marks" value="${questions[0]?.marks || 1}">
+        <input type="hidden" class="section-ai-ratio" value="0.0">
+        <input type="hidden" class="section-instructions" value="Questions selected from question bank">
+        <input type="hidden" class="bank-questions-data" value='${JSON.stringify(questions)}'>
+    `;
+
+    sectionsContainer.appendChild(sectionDiv);
+
+    // Add styling for question bank sections
+    sectionDiv.style.border = '2px solid #28a745';
+    sectionDiv.style.borderRadius = '8px';
+    sectionDiv.style.padding = '1rem';
+    sectionDiv.style.marginBottom = '1rem';
+    sectionDiv.style.backgroundColor = '#f8fff8';
+}
+
 // Generate AI-powered quiz from title
 async function generateAIQuiz() {
     const title = document.getElementById('exam-title').value;
@@ -316,14 +477,30 @@ async function generateAIQuiz() {
     showLoading(true);
 
     try {
+        // Get user input values
+        const questionCount = parseInt(document.getElementById('ai-question-count').value) || 10;
+        const difficulty = document.getElementById('ai-difficulty').value || 'medium';
+
+        // Get selected question types
+        const questionTypes = [];
+        if (document.getElementById('ai-type-mcq').checked) questionTypes.push('mcq');
+        if (document.getElementById('ai-type-short').checked) questionTypes.push('short_answer');
+        if (document.getElementById('ai-type-descriptive').checked) questionTypes.push('descriptive');
+
+        if (questionTypes.length === 0) {
+            showAlert('Please select at least one question type', 'error');
+            showLoading(false);
+            return;
+        }
+
         const response = await apiCall('/generate-quiz-from-title', {
             method: 'POST',
             body: JSON.stringify({
                 quiz_title: title,
                 subject: subject,
-                difficulty: 'medium',
-                count: 5,
-                question_types: ['mcq', 'short_answer']
+                difficulty: difficulty,
+                count: questionCount, // Use user's input for question count
+                question_types: questionTypes // Use user's selected question types
             })
         });
 
@@ -335,6 +512,7 @@ async function generateAIQuiz() {
             // Create sections based on generated questions
             const mcqQuestions = response.questions.filter(q => q.type === 'mcq');
             const shortAnswerQuestions = response.questions.filter(q => q.type === 'short_answer');
+            const descriptiveQuestions = response.questions.filter(q => q.type === 'descriptive');
 
             if (mcqQuestions.length > 0) {
                 addAIGeneratedSection('Multiple Choice Questions', mcqQuestions, 'mcq');
@@ -342,6 +520,10 @@ async function generateAIQuiz() {
 
             if (shortAnswerQuestions.length > 0) {
                 addAIGeneratedSection('Short Answer Questions', shortAnswerQuestions, 'short_answer');
+            }
+
+            if (descriptiveQuestions.length > 0) {
+                addAIGeneratedSection('Descriptive Questions', descriptiveQuestions, 'descriptive');
             }
 
             showAlert(`Generated ${response.total_questions} questions using ${response.generation_method}!`, 'success');
@@ -482,16 +664,23 @@ async function handleCreateExam(event) {
             body: JSON.stringify(formData)
         });
         
+        console.log('✅ Exam created successfully, response:', data);
+
         closeModal('create-exam-modal');
         showAlert('Exam created successfully!', 'success');
-        
+
         // Reset form
         document.getElementById('create-exam-form').reset();
         document.getElementById('exam-sections').innerHTML = '';
         examSectionCount = 0;
-        
-        // Refresh dashboard
-        refreshDashboard();
+
+        console.log('🔄 Refreshing dashboard to show new exam...');
+
+        // Refresh dashboard with a small delay to ensure backend is updated
+        setTimeout(() => {
+            refreshDashboard();
+            console.log('📊 Dashboard refresh completed');
+        }, 1000);
         
     } catch (error) {
         showAlert(error.message || 'Failed to create exam', 'error');
