@@ -872,14 +872,26 @@ async function startExam(examId) {
         // Setup anti-cheating measures
         setupAntiCheating();
 
+        // Auto-close any open modals before showing exam
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (modal.id !== 'exam-modal') {
+                modal.style.display = 'none';
+            }
+        });
+
         // Show exam modal
         showExamModal();
 
         // Start timer
         startExamTimer();
 
-        // Load first question
-        loadQuestion(0);
+        // Load first question (robust check)
+        if (currentExamData.questions && currentExamData.questions.length > 0) {
+            loadQuestion(0);
+        } else {
+            showAlert('No questions found for this exam. Please contact your teacher.', 'error');
+            document.getElementById('exam-modal').style.display = 'none';
+        }
 
         showLoading(false);
 
@@ -1007,29 +1019,64 @@ function logSecurityEvent(eventType) {
 
 // Show exam modal and setup UI
 function showExamModal() {
-    const modal = document.getElementById('exam-modal');
-    const title = document.getElementById('exam-modal-title');
-
-    // Safety checks
+    let modal = document.getElementById('exam-modal');
+    // Fallback: dynamically create modal if missing
     if (!modal) {
-        console.error('Exam modal not found');
-        showAlert('Exam interface not available', 'error');
+        modal = document.createElement('div');
+        modal.id = 'exam-modal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.innerHTML = `
+            <div class="modal-content modal-xl">
+                <div class="modal-header">
+                    <h2 id="exam-modal-title"><i class="fas fa-clipboard-check"></i> Exam</h2>
+                    <div class="exam-timer">
+                        <i class="fas fa-clock"></i>
+                        <span id="exam-timer">00:00</span>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div id="exam-content"></div>
+                    <div class="exam-navigation">
+                        <button class="btn btn-outline" onclick="previousQuestion()" id="prev-btn" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                            Previous
+                        </button>
+                        <span id="question-indicator">Question 1 of 10</span>
+                        <button class="btn btn-outline" onclick="nextQuestion()" id="next-btn">
+                            Next
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="submitExam()" id="submit-btn" style="display: none;">
+                            <i class="fas fa-check"></i>
+                            Submit Exam
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+    const title = document.getElementById('exam-modal-title');
+    const examContent = document.getElementById('exam-content');
+    const questionIndicator = document.getElementById('question-indicator');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    const timer = document.getElementById('exam-timer');
+
+    // Robust safety checks for all required elements
+    if (!modal || !title || !examContent || !questionIndicator || !prevBtn || !nextBtn || !submitBtn || !timer) {
+        console.error('Exam modal or required elements missing after fallback.');
+        showAlert('Exam interface not available (critical elements missing)', 'error');
         return;
     }
-
-    if (!title) {
-        console.error('Exam modal title not found');
-        showAlert('Exam interface not properly loaded', 'error');
-        return;
-    }
-
     if (!currentExamData || !currentExamData.title) {
         console.error('Exam data not available', currentExamData);
         showAlert('Exam data not loaded', 'error');
         return;
     }
 
-    title.innerHTML = `<i class="fas fa-clipboard-check"></i> ${currentExamData.title}`;
+    title.innerHTML = `<i class=\"fas fa-clipboard-check\"></i> ${currentExamData.title}`;
     modal.style.display = 'block';
 
     // Make modal fullscreen and prevent closing
@@ -1316,9 +1363,23 @@ function showExamResults(result) {
     // Close exam modal
     document.getElementById('exam-modal').style.display = 'none';
 
-    // Show results modal
-    const resultsModal = document.getElementById('results-modal');
-    const resultsContent = document.getElementById('results-content');
+    // Create or get result dashboard modal
+    let resultDashboard = document.getElementById('result-dashboard-modal');
+    if (!resultDashboard) {
+        resultDashboard = document.createElement('div');
+        resultDashboard.id = 'result-dashboard-modal';
+        resultDashboard.className = 'modal';
+        resultDashboard.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-trophy"></i> Your Performance</h2>
+                    <span class="close" onclick="this.closest('.modal').style.display='none'">&times;</span>
+                </div>
+                <div class="modal-body" id="result-dashboard-content"></div>
+            </div>`;
+        document.body.appendChild(resultDashboard);
+    }
+    const resultContent = document.getElementById('result-dashboard-content');
 
     // Calculate statistics
     const totalQuestions = currentExamData.questions.length;
@@ -1329,58 +1390,46 @@ function showExamResults(result) {
     const grade = getGrade(percentage);
     const timeTaken = formatTime(result.time_taken || 0);
 
-    // Create results HTML
-    let resultsHTML = `
-        <div class="results-summary">
-            <div class="score-display">
-                <div class="score-circle ${getScoreClass(percentage)}">
-                    <span class="score-percentage">${percentage}%</span>
-                    <span class="score-grade">${grade}</span>
-                </div>
-            </div>
+    // Feedback logic
+    let feedback = '';
+    if (percentage >= 90) {
+        feedback = 'Outstanding performance! You have mastered the material.';
+    } else if (percentage >= 75) {
+        feedback = 'Great job! Keep up the good work and aim for perfection.';
+    } else if (percentage >= 60) {
+        feedback = 'Good effort! Review the questions you missed to improve further.';
+    } else if (percentage >= 40) {
+        feedback = 'You passed, but there is room for improvement. Study the material and try again.';
+    } else {
+        feedback = 'Don’t be discouraged. Review your mistakes and keep practicing!';
+    }
 
-            <div class="results-stats">
-                <div class="stat-row">
-                    <span class="stat-label">Score:</span>
-                    <span class="stat-value">${score}/${result.total_marks || totalQuestions}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Correct Answers:</span>
-                    <span class="stat-value">${correctAnswers}/${totalQuestions}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Questions Answered:</span>
-                    <span class="stat-value">${answeredQuestions}/${totalQuestions}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Time Taken:</span>
-                    <span class="stat-value">${timeTaken}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">Exam Duration:</span>
-                    <span class="stat-value">${currentExamData.duration} minutes</span>
+    // Create result dashboard HTML
+    let dashboardHTML = `
+        <div class="results-summary" style="text-align:center;">
+            <div class="score-display" style="margin-bottom: 20px;">
+                <div class="score-circle ${getScoreClass(percentage)}" style="margin: 0 auto;">
+                    <span class="score-percentage" style="font-size:2.5rem;">${percentage}%</span>
+                    <span class="score-grade" style="font-size:1.2rem;">${grade}</span>
                 </div>
             </div>
+            <div class="results-stats" style="margin-bottom: 20px;">
+                <div class="stat-row"><span class="stat-label">Score:</span> <span class="stat-value">${score}/${result.total_marks || totalQuestions}</span></div>
+                <div class="stat-row"><span class="stat-label">Correct Answers:</span> <span class="stat-value">${correctAnswers}/${totalQuestions}</span></div>
+                <div class="stat-row"><span class="stat-label">Questions Answered:</span> <span class="stat-value">${answeredQuestions}/${totalQuestions}</span></div>
+                <div class="stat-row"><span class="stat-label">Time Taken:</span> <span class="stat-value">${timeTaken}</span></div>
+                <div class="stat-row"><span class="stat-label">Exam Duration:</span> <span class="stat-value">${currentExamData.duration} minutes</span></div>
+            </div>
+            <div class="feedback-box" style="background: #f7fafc; border-left: 4px solid #667eea; padding: 18px; border-radius: 10px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 8px; color: #667eea;"><i class="fas fa-lightbulb"></i> Feedback</h4>
+                <p style="font-size: 1.1rem; color: #2d3748;">${feedback}</p>
+            </div>
+            <button class="btn btn-primary" onclick="document.getElementById('result-dashboard-modal').style.display='none'; refreshDashboard();">Go to Dashboard</button>
         </div>
     `;
 
-    // Add security events if any
-    if (tabSwitchCount > 0 || copyAttempts > 0 || pasteAttempts > 0 || rightClickAttempts > 0) {
-        resultsHTML += `
-            <div class="security-events">
-                <h4><i class="fas fa-shield-alt"></i> Security Events</h4>
-                <div class="security-stats">
-                    <div class="security-item">Tab Switches: ${tabSwitchCount}</div>
-                    <div class="security-item">Copy Attempts: ${copyAttempts}</div>
-                    <div class="security-item">Paste Attempts: ${pasteAttempts}</div>
-                    <div class="security-item">Right-click Attempts: ${rightClickAttempts}</div>
-                </div>
-            </div>
-        `;
-    }
-
-    resultsContent.innerHTML = resultsHTML;
-    resultsModal.style.display = 'block';
+    resultContent.innerHTML = dashboardHTML;
+    resultDashboard.style.display = 'block';
 
     // Refresh dashboard to update student progress
     setTimeout(() => {
